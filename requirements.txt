@@ -1,0 +1,4 @@
+echo "streamlit
+pandas
+plotly
+" > requirements.txt
