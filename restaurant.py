@@ -290,7 +290,8 @@ class RestaurantApp:
                         if quantity > 0:
                             selected_items[item[0]] = quantity
             
-            if st.form_submit_button("Create Order"):
+            submitted = st.form_submit_button("Create Order")
+            if submitted:
                 if not selected_items:
                     st.error("Please select at least one item!")
                 else:
