@@ -3,35 +3,49 @@ import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 
+import streamlit as st
+
 @contextmanager
 def get_db_connection():
     conn = None
     try:
-        # Use :memory: for cloud deployment to avoid permission issues
-        conn = sqlite3.connect(':memory:' if 'STREAMLIT_SHARING' in os.environ else 'restaurant.db')
-        conn.row_factory = sqlite3.Row
-        
-        # Initialize the database if it's in-memory
-        if 'STREAMLIT_SHARING' in os.environ:
+        # Use session state to maintain database connection
+        if 'db_connection' not in st.session_state:
+            # Use in-memory database for cloud deployment
+            conn = sqlite3.connect(':memory:' if 'STREAMLIT_SHARING' in os.environ else 'restaurant.db')
+            conn.row_factory = sqlite3.Row
+            
+            # Initialize the database
             from create_database import init_database
             init_database(conn)
             
-            # Add some sample data
-            cursor = conn.cursor()
-            # Add sample tables
-            cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (1, 4, 'AVAILABLE')")
-            cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (2, 2, 'AVAILABLE')")
-            cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (3, 6, 'AVAILABLE')")
-            # Add sample menu items
-            cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Burger', 'MAIN COURSE', 12.99, 'AVAILABLE')")
-            cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Fries', 'STARTER', 5.99, 'AVAILABLE')")
-            cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Ice Cream', 'DESSERT', 6.99, 'AVAILABLE')")
-            conn.commit()
+            # Add sample data if in cloud environment
+            if 'STREAMLIT_SHARING' in os.environ:
+                cursor = conn.cursor()
+                try:
+                    # Add sample tables
+                    cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (1, 4, 'AVAILABLE')")
+                    cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (2, 2, 'AVAILABLE')")
+                    cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (3, 6, 'AVAILABLE')")
+                    
+                    # Add sample menu items
+                    cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Burger', 'MAIN COURSE', 12.99, 'AVAILABLE')")
+                    cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Fries', 'STARTER', 5.99, 'AVAILABLE')")
+                    cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Ice Cream', 'DESSERT', 6.99, 'AVAILABLE')")
+                    conn.commit()
+                except sqlite3.IntegrityError:
+                    # Sample data might already exist
+                    pass
             
-        yield conn
+            st.session_state.db_connection = conn
+        
+        yield st.session_state.db_connection
+    except Exception as e:
+        st.error(f"Database error: {str(e)}")
+        raise
     finally:
-        if conn:
-            conn.close()
+        # Don't close the connection here as we're storing it in session state
+        pass
 
 class DatabaseOperations:
     # Customer Operations

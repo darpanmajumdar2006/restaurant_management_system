@@ -12,6 +12,15 @@ class RestaurantApp:
             page_icon="🍽️",
             layout="wide"
         )
+        
+        # Initialize database if needed
+        if 'db_initialized' not in st.session_state:
+            try:
+                from create_database import init_database
+                init_database()
+                st.session_state.db_initialized = True
+            except Exception as e:
+                st.error(f"Failed to initialize database: {str(e)}")
 
     def main(self):
         st.sidebar.title("🍽️ Restaurant Manager")

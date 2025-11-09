@@ -1,8 +1,10 @@
 import sqlite3
 
 def init_database(conn=None):
+    should_close = False
     if conn is None:
         conn = sqlite3.connect('restaurant.db')
+        should_close = True
     cursor = conn.cursor()
 
     try:
@@ -141,7 +143,8 @@ def init_database(conn=None):
         print(f"An error occurred: {e}")
         conn.rollback()
     finally:
-        conn.close()
+        if should_close and conn:
+            conn.close()
 
 if __name__ == "__main__":
     init_database()
