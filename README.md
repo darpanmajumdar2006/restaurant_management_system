@@ -1,46 +1,83 @@
-echo "# Restaurant Management System
+# Restora – Restaurant Management System  
 
-A streamlit-based web application for managing restaurant operations.
+A full-stack restaurant management system built to streamline and automate core restaurant operations such as managing customers, orders, reservations, and payments.
 
-## Features
-- Customer Management
-- Table Management
-- Menu Management
-- Order Processing
-- Payment Processing
-- Reports & Analytics
+---
 
-## Installation
-1. Clone the repository
-\`\`\`bash
-git clone https://github.com/yourusername/restaurant-management.git
-cd restaurant-management
-\`\`\`
+## Features  
 
-2. Install dependencies
-\`\`\`bash
-pip install -r requirements.txt
-\`\`\`
+- Manage customers, menu items, and staff  
+- Handle orders and reservations efficiently  
+- Track payments and transactions  
+- View sales analytics and performance insights  
+- Real-time CRUD operations via interactive UI  
 
-3. Initialize the database
-\`\`\`bash
-python create_database.py
-\`\`\`
+---
 
-4. Run the application
-\`\`\`bash
-streamlit run restaurant.py
-\`\`\`
+## Tech Stack  
 
-## Tech Stack
-- Python
-- Streamlit
-- SQLite
-- Pandas
-- Plotly
+- Frontend: Streamlit  
+- Backend: Python  
+- Database: Oracle SQL  
+- Libraries: Pandas  
+
+---
+
+## Demo  
+
+(Add your project video or screenshots here)  
+
+---
+
+## How It Works  
+
+1. User interacts with the Streamlit interface  
+2. Requests are processed using Python  
+3. Data is stored and retrieved from Oracle database  
+4. Results are displayed dynamically in the UI  
+
+---
+
+## Key Learnings  
+
+- Designing normalized relational databases  
+- Integrating Python with SQL databases  
+- Building interactive web apps using Streamlit  
+- Implementing real-time data operations (CRUD)  
+
+---
+
+## Future Improvements  
+
+- Add authentication (login system)  
+- Deploy the app online  
+- Integrate advanced analytics/dashboard  
+- Add recommendation system using AI  
+
+---
 
 ## Project Structure
-- \`restaurant.py\`: Main application file
-- \`database.py\`: Database operations
-- \`create_database.py\`: Database initialization
-" > README.md
+
+- config.py
+- create_database.py
+- database.py
+- packages.txt
+- requirements.txt
+- restaurant.db
+- restaurant.py
+- runtime.txt
+- verify_menu.py
+
+---
+
+## Author  
+
+Darpan Majumdar  
+B.Tech Computer Science & Bioscience  
+Manipal University Jaipur  
+
+---
+
+## Acknowledgements  
+
+This project was built as part of academic learning and self-practice to understand full-stack development and database integration.
