@@ -9,43 +9,40 @@ import streamlit as st
 def get_db_connection():
     conn = None
     try:
-        # Use session state to maintain database connection
-        if 'db_connection' not in st.session_state:
-            # Use in-memory database for cloud deployment
-            conn = sqlite3.connect(':memory:' if 'STREAMLIT_SHARING' in os.environ else 'restaurant.db')
-            conn.row_factory = sqlite3.Row
-            
-            # Initialize the database
-            from create_database import init_database
-            init_database(conn)
-            
-            # Add sample data if in cloud environment
-            if 'STREAMLIT_SHARING' in os.environ:
-                cursor = conn.cursor()
-                try:
-                    # Add sample tables
-                    cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (1, 4, 'AVAILABLE')")
-                    cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (2, 2, 'AVAILABLE')")
-                    cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (3, 6, 'AVAILABLE')")
-                    
-                    # Add sample menu items
-                    cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Burger', 'MAIN COURSE', 12.99, 'AVAILABLE')")
-                    cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Fries', 'STARTER', 5.99, 'AVAILABLE')")
-                    cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Ice Cream', 'DESSERT', 6.99, 'AVAILABLE')")
-                    conn.commit()
-                except sqlite3.IntegrityError:
-                    # Sample data might already exist
-                    pass
-            
-            st.session_state.db_connection = conn
+        # Create a new connection for each request with thread safety
+        conn = sqlite3.connect('restaurant.db', check_same_thread=False)
+        conn.row_factory = sqlite3.Row
         
-        yield st.session_state.db_connection
+        # Initialize database if it doesn't exist
+        if not os.path.exists('restaurant.db'):
+            from create_database import init_database
+            init_database()
+            
+            # Add sample data for new database
+            cursor = conn.cursor()
+            try:
+                cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (1, 4, 'AVAILABLE')")
+                cursor.execute("INSERT INTO REST_TABLE (BOOKING_ID, SEATING_CAPACITY, BOOKING_STATUS) VALUES (2, 2, 'AVAILABLE')")
+                cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Burger', 'MAIN COURSE', 12.99, 'AVAILABLE')")
+                cursor.execute("INSERT INTO MENU_ITEM (ITEM_NAME, ITEM_CATEGORY, PRICE, AVAILABILITY_STATUS) VALUES ('Fries', 'STARTER', 5.99, 'AVAILABLE')")
+                conn.commit()
+            except sqlite3.IntegrityError:
+                pass
+        
+        yield conn
     except Exception as e:
         st.error(f"Database error: {str(e)}")
+        if conn and conn.in_transaction:
+            conn.rollback()
         raise
     finally:
-        # Don't close the connection here as we're storing it in session state
-        pass
+        if conn:
+            try:
+                if not conn.in_transaction:
+                    conn.commit()
+                conn.close()
+            except Exception:
+                pass
 
 class DatabaseOperations:
     # Customer Operations
@@ -124,33 +121,31 @@ class DatabaseOperations:
             try:
                 cursor.execute('BEGIN TRANSACTION')
                 
-                # Create order
-                cursor.execute('''
-                    INSERT INTO ORDERS (CUSTOMER_ID, TABLE_NUMBER, TOTAL_AMOUNT)
-                    VALUES (?, ?, 0)
-                ''', (customer_id, table_number))
-                order_id = cursor.lastrowid
-
+                # Calculate total amount first
                 total_amount = 0
-                # Add order items
+                item_details = []
                 for item_id, quantity in items:
                     # Get item price
                     cursor.execute('SELECT PRICE FROM MENU_ITEM WHERE MENUITEM_NUMBER = ?', (item_id,))
                     price = cursor.fetchone()[0]
                     item_total = price * quantity
                     total_amount += item_total
+                    item_details.append((item_id, quantity, item_total))
 
+                # Create order with calculated total
+                cursor.execute('''
+                    INSERT INTO ORDERS (CUSTOMER_ID, TABLE_NUMBER, TOTAL_AMOUNT)
+                    VALUES (?, ?, ?)
+                ''', (customer_id, table_number, total_amount))
+                order_id = cursor.lastrowid
+
+                # Add order items
+                # Insert order items using pre-calculated values
+                for item_id, quantity, item_total in item_details:
                     cursor.execute('''
                         INSERT INTO ORDER_ITEM (ORDER_ID, MENUITEM_NUMBER, QUANTITY, ITEM_TOTAL)
                         VALUES (?, ?, ?, ?)
                     ''', (order_id, item_id, quantity, item_total))
-
-                # Update order total
-                cursor.execute('''
-                    UPDATE ORDERS 
-                    SET TOTAL_AMOUNT = ? 
-                    WHERE ORDER_ID = ?
-                ''', (total_amount, order_id))
 
                 # Update table status
                 cursor.execute('''

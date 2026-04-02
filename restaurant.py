@@ -147,6 +147,33 @@ class RestaurantApp:
             st.subheader("Current Table Status")
             tables = self.db.get_all_tables()
             if tables:
+                # Display each table as a card with status update option
+                st.write("Update Table Status:")
+                cols = st.columns(3)  # Create 3 columns for layout
+                for idx, table in enumerate(tables):
+                    col = cols[idx % 3]  # Distribute tables across columns
+                    with col:
+                        with st.container():
+                            st.write(f"**Table {table[0]}**")
+                            st.write(f"Seats: {table[2]}")
+                            new_status = st.selectbox(
+                                "Status",
+                                ["AVAILABLE", "OCCUPIED", "RESERVED"],
+                                index=["AVAILABLE", "OCCUPIED", "RESERVED"].index(table[3]),
+                                key=f"table_status_{table[0]}"
+                            )
+                            if new_status != table[3]:
+                                if st.button("Update", key=f"update_table_{table[0]}"):
+                                    try:
+                                        self.db.update_table_status(table[0], new_status)
+                                        st.success(f"Table {table[0]} status updated!")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Error updating table: {str(e)}")
+                            st.markdown("---")
+                
+                # Show table summary in a dataframe
+                st.subheader("Tables Overview")
                 df = pd.DataFrame(tables, columns=[
                     'Table Number', 'Booking ID', 
                     'Seating Capacity', 'Status'
@@ -378,22 +405,24 @@ class RestaurantApp:
 
     def generate_reports(self):
         st.title("Reports")
-        report_type = st.selectbox(
-            "Select Report Type",
-            ["Sales Report", "Menu Performance"]
-        )
+        
+        with st.form("generate_report_form"):
+            report_type = st.selectbox(
+                "Select Report Type",
+                ["Sales Report", "Menu Performance"]
+            )
 
-        col1, col2 = st.columns(2)
-        with col1:
-            start_date = st.date_input("Start Date")
-        with col2:
-            end_date = st.date_input("End Date")
+            col1, col2 = st.columns(2)
+            with col1:
+                start_date = st.date_input("Start Date")
+            with col2:
+                end_date = st.date_input("End Date")
 
-        if st.button("Generate Report"):
-            if report_type == "Sales Report":
-                self.generate_sales_report(start_date, end_date)
-            elif report_type == "Menu Performance":
-                self.generate_menu_report(start_date, end_date)
+            if st.form_submit_button("Generate Report"):
+                if report_type == "Sales Report":
+                    self.generate_sales_report(start_date, end_date)
+                elif report_type == "Menu Performance":
+                    self.generate_menu_report(start_date, end_date)
 
     def generate_sales_report(self, start_date, end_date):
         try:
