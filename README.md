@@ -23,11 +23,7 @@ A full-stack restaurant management system built to streamline and automate core 
 
 ---
 
-## Demo  
 
-(Add your project video or screenshots here)  
-
----
 
 ## How It Works  
 
